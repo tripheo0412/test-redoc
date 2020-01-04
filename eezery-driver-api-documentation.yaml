@@ -1,4 +1,4 @@
-openapi: 3.0.1
+openapi: 3.0.0
 info:
   title: Eezery Agent/Driver API
   description: This is the Eezery Agent/Driver API.  You can find out more about     Eezery
