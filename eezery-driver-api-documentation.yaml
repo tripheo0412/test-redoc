@@ -1,0 +1,939 @@
+openapi: 3.0.1
+info:
+  title: Eezery Agent/Driver API
+  description: This is the Eezery Agent/Driver API.  You can find out more about     Eezery
+    at [https://eezery.com/en](https://eezery.com).
+  contact:
+    email: hoangtri241097@gmail.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+servers:
+- url: http://ec2-54-208-189-197.compute-1.amazonaws.com/api
+tags:
+- name: auth
+  description: Authentication for Agent/Driver (some route will be disabled due to
+    conflict with Fonsel)
+- name: agent
+  description: Access to Agent/Driver profile
+- name: mission
+  description: Access to Agent/Driver mission
+- name: order
+  description: Access to Agent/Driver orders
+  externalDocs:
+    description: Find out more about orders status
+    url: https://api.eezery.io/#delivery-orders-get-current-status-post
+paths:
+  /auth/login:
+    post:
+      tags:
+      - auth
+      summary: Authenticate driver/agent
+      description: Get access token, if this token expired, you can request new token
+        via refresh route
+      operationId: loginDriver
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - password
+              - username
+              properties:
+                username:
+                  type: string
+                  example: johndoe
+                password:
+                  type: string
+                  example: 6uTENdassa
+          multipart/form-data:
+            schema:
+              required:
+              - password
+              - username
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+        required: true
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              example: 
+                status: ok
+                token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vZWMyLTU0LTIwOC0xODktMTk3LmNvbXB1dGUtMS5hbWF6b25hd3MuY29tLy9hcGkvYXV0aC9sb2dpbiIsImlhdCI6MTU3ODA0MTU1MCwiZXhwIjoxNTc4MTI3OTUwLCJuYmYiOjE1NzgwNDE1NTAsImp0aSI6Ik5DdFRqbVhlejZZUkJIMU0iLCJzdWIiOjE0MSwicHJ2IjoiODdlMGFmMWVmOWZkMTU4MTJmZGVjOTcxNTNhMTRlMGIwNDc1NDZhYSJ9.4BqHOZ5vqg545uxAvW8KNGEz_q7W1RCIm4G1nnA6BhM
+                expires_in: 86400
+                
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  password:
+                    type: string
+                    example: credential mismatch/ not a driver
+  /auth/refresh:
+    get:
+      tags:
+      - auth
+      summary: Refresh access token driver/agent
+      description: regenerate new access token, if user logout, access token will
+        be blacklisted and cannot be use to refresh
+      operationId: refreshToken
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              example:
+                status: ok
+                token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vZWMyLTU0LTIwOC0xODktMTk3LmNvbXB1dGUtMS5hbWF6b25hd3MuY29tLy9hcGkvYXV0aC9yZWZyZXNoIiwiaWF0IjoxNTc4MDQxNTUwLCJleHAiOjE1NzgxNDUwNjQsIm5iZiI6MTU3ODA1ODY2NCwianRpIjoiejg1Q2VHMWVOaG5yS2lQNCIsInN1YiI6MTQxLCJwcnYiOiI4N2UwYWYxZWY5ZmQxNTgxMmZkZWM5NzE1M2ExNGUwYjA0NzU0NmFhIn0.FnCaRZAFIpEQ58dW7ejS9HWidlymq0HR7R6tr--ERNI
+                expires_in: 86400
+                
+        500:
+          description: Unauthorized
+          content:
+            application/json:
+              example:
+                error:
+                  message: The token has been blacklisted
+                  status_code: 500
+                
+      security:
+      - BasicAuth: []
+  /auth/logout:
+    post:
+      tags:
+      - auth
+      summary: Blacklist current access token
+      description: regenerate new access token, if user logout, access token will
+        be blacklisted and cannot be use to refresh
+      operationId: blacklistToken
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              example:
+                status: ok
+                message: 'Successfully logged out, token black listed'
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              example:
+                error:
+                  message: Token not provided/ Token has been blacklisted
+                  status_code: 401
+                
+      security:
+      - BasicAuth: []
+  /auth/user:
+    get:
+      tags:
+      - agent
+      summary: Get current driver profile
+      description: Get current driver profile and driver vehicle profile from token
+      operationId: getUser
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              example:
+                agent_vehicle_profile:
+                  id: 57
+                  created: '2019-12-16 15:38:11'
+                  modified: '2019-12-16 15:38:13'
+                  user_id: 141
+                  fleet_id: 478167
+                  status: 1
+                  transport_type: 1
+                  transport_desc: Volvo S80
+                  license: ABC-123
+                  has_logger_type: null
+                  color: White
+                  timezone: -180
+                  primary_delivery_city: Helsinki
+                  rule_id: 11985
+                  team_id: 136519
+                agent_user_profile:
+                  id: 141
+                  created: '2019-12-16 15:38:11'
+                  modified: '2019-12-16 15:38:11'
+                  type_id: 4
+                  username: tri.hoang@integrify.io
+                  firstname: Tri
+                  lastname: Hoang
+                  company_name: Integrify
+                  permission_id: 10
+                  street: Kitarakuja 3 A
+                  zip_code: '00420'
+                  city: Helsinki
+                  email: tri.hoang@integrify.io
+                  phone: '+358449209829'
+                  sms: null
+                  gender: 1
+                  language_id: 1
+                  date_of_birth: '1997-02-02'
+                  photo: null
+                  dir: null
+                  size: null
+                  enterprise_id: null
+                  customer_id: null
+                  layout: default
+                  skin: default
+                  admin_id: 0
+                  status: 1
+                  status_name: null
+                  session_timeout: 600
+                  notifications_time: 4000
+                  notifications_color: juuduu
+                  last_login: null
+                  logins: 0
+                  permission_to_market: 0
+                  accepted_terms: '2019-12-27 04:00:15'
+                
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              example:
+                error:
+                  message: Token not provided/ Token has been blacklisted
+                  status_code: 401
+                
+      security:
+      - BasicAuth: []
+  /mission/available:
+    get:
+      tags:
+      - mission
+      summary: Get all Driver's available mission
+      description: |-
+        Get All Available mission for Driver
+        
+        QUERY CONDITION:
+        
+         Driver must have all tags from slot ( enterprise, customer, pricelist tags)
+         
+         Slots.pickup_time > now (query slot that is still time-valid)
+         
+         Slots.status==2 (query slot that has been optimized)
+         
+         Missions.status == 0 (Mission is Available)
+         
+         Order.status < > -1 (Mission can have multiple orders but order with status == -1 will not be sent to front-end)
+         
+      operationId: getAvailableMission
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              examples:
+                success-with-mission:
+                  summary: Success With Mission
+                  value:
+                    status: ok
+                    missions:
+                      '1080':
+                        - agent_id: null
+                          mission_id: 1080
+                          mission_status: 0
+                          order_status: 6
+                          order_id: 1080
+                          order_content: Apteekkituotteita
+                          order_volume: 1
+                          order_pickup_after: '2020-12-31 15:15:00'
+                          order_pickup_before: '2020-12-31 17:00:00'
+                          order_weight: 1
+                          order_pin: ''
+                          order_time: '2019-08-01 16:05:17'
+                          order_packets: 1
+                          order_deliver_before: '2020-12-31 17:00:00'
+                          order_deliver_after: '2020-12-31 15:45:00'
+                          customer_street: Sahaajankatu 24
+                          customer_zip: 00880
+                          customer_latitude: '60.20070'
+                          customer_longtitude: '25.04698'
+                          customer_name: PharmaService Oy
+                          customer_city: Helsinki
+                          receiver_street: Mustalahdentie 4
+                          receiver_zip: 00960
+                          receiver_latitude: '60.22139'
+                          receiver_longtitude: '25.13911'
+                          receiver_name: VuoApteekki
+                          receiver_city: Helsinki
+                          sender_street: Sahaajankatu 24
+                          sender_zip: 00880
+                          sender_latitude: '60.20070'
+                          sender_longtitude: '25.04698'
+                          sender_name: PharmaService Oy
+                          sender_city: Helsinki
+                        - agent_id: null
+                          mission_id: 1080
+                          mission_status: 0
+                          order_status: 6
+                          order_id: 5771
+                          order_content: Apteekkituotteita
+                          order_volume: 1
+                          order_pickup_after: '2020-12-31 15:15:00'
+                          order_pickup_before: '2020-12-31 17:00:00'
+                          order_weight: 1
+                          order_pin: ''
+                          order_time: '2019-08-01 16:05:17'
+                          order_packets: 1
+                          order_deliver_before: '2020-12-31 17:00:00'
+                          order_deliver_after: '2020-12-31 15:45:00'
+                          customer_street: Sahaajankatu 24
+                          customer_zip: 00880
+                          customer_latitude: '60.20070'
+                          customer_longtitude: '25.04698'
+                          customer_name: PharmaService Oy
+                          customer_city: Helsinki
+                          receiver_street: Mustalahdentie 4
+                          receiver_zip: 00960
+                          receiver_latitude: '60.22139'
+                          receiver_longtitude: '25.13911'
+                          receiver_name: VuoApteekki
+                          receiver_city: Helsinki
+                          sender_street: Sahaajankatu 24
+                          sender_zip: 00880
+                          sender_latitude: '60.20070'
+                          sender_longtitude: '25.04698'
+                          sender_name: PharmaService Oy
+                          sender_city: Helsinki
+                success-without-mission:
+                  summary: Success Without Mission
+                  value:
+                    status: ok
+                    message: no available mission
+      security:
+      - BasicAuth: []              
+  /mission/reserved/all:
+    get:
+      tags:
+      - mission
+      summary: Get Driver's Mission History
+      description: |-
+        Get All mission driver has reserved/in-progress/failed/delivered for Driver
+        
+        QUERY CONDITION:
+        
+        Missions.agent_id == user_id from token (query all mission assigned to driver)
+        
+        Order.status < > -1 (return all order beside order with internal error)
+        
+        NOTED: Mission can have multiple orders but order with status == -1 will not be sent to front-end
+      operationId: getAgentMissionHistory
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              examples:
+                success-with-mission:
+                  summary: Success With Mission
+                  value:
+                    status: ok
+                    missions:
+                      '1080':
+                        - agent_id: 57
+                          mission_id: 1080
+                          mission_status: 1
+                          order_status: 6
+                          order_id: 1080
+                          order_content: Apteekkituotteita
+                          order_volume: 1
+                          order_pickup_after: '2020-12-31 15:15:00'
+                          order_pickup_before: '2020-12-31 17:00:00'
+                          order_weight: 1
+                          order_pin: ''
+                          order_time: '2019-08-01 16:05:17'
+                          order_packets: 1
+                          order_deliver_before: '2020-12-31 17:00:00'
+                          order_deliver_after: '2020-12-31 15:45:00'
+                          customer_street: Sahaajankatu 24
+                          customer_zip: 00880
+                          customer_latitude: '60.20070'
+                          customer_longtitude: '25.04698'
+                          customer_name: PharmaService Oy
+                          customer_city: Helsinki
+                          receiver_street: Mustalahdentie 4
+                          receiver_zip: 00960
+                          receiver_latitude: '60.22139'
+                          receiver_longtitude: '25.13911'
+                          receiver_name: VuoApteekki
+                          receiver_city: Helsinki
+                          sender_street: Sahaajankatu 24
+                          sender_zip: 00880
+                          sender_latitude: '60.20070'
+                          sender_longtitude: '25.04698'
+                          sender_name: PharmaService Oy
+                          sender_city: Helsinki
+                        - agent_id: 57
+                          mission_id: 1080
+                          mission_status: 1
+                          order_status: 6
+                          order_id: 5771
+                          order_content: Apteekkituotteita
+                          order_volume: 1
+                          order_pickup_after: '2020-12-31 15:15:00'
+                          order_pickup_before: '2020-12-31 17:00:00'
+                          order_weight: 1
+                          order_pin: ''
+                          order_time: '2019-08-01 16:05:17'
+                          order_packets: 1
+                          order_deliver_before: '2020-12-31 17:00:00'
+                          order_deliver_after: '2020-12-31 15:45:00'
+                          customer_street: Sahaajankatu 24
+                          customer_zip: 00880
+                          customer_latitude: '60.20070'
+                          customer_longtitude: '25.04698'
+                          customer_name: PharmaService Oy
+                          customer_city: Helsinki
+                          receiver_street: Mustalahdentie 4
+                          receiver_zip: 00960
+                          receiver_latitude: '60.22139'
+                          receiver_longtitude: '25.13911'
+                          receiver_name: VuoApteekki
+                          receiver_city: Helsinki
+                          sender_street: Sahaajankatu 24
+                          sender_zip: 00880
+                          sender_latitude: '60.20070'
+                          sender_longtitude: '25.04698'
+                          sender_name: PharmaService Oy
+                          sender_city: Helsinki
+                    
+                success-without-mission:
+                  summary: Success Without Mission
+                  value:
+                    status: ok
+                    message: no mission found
+                  
+    
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+                example:
+                  message: Token not provided/ Token has been blacklisted
+                  status_code: 401
+      security:
+      - BasicAuth: []
+  /mission/reserved/ongoing:
+    get:
+      tags:
+      - mission
+      summary: Get Driver's In Progress Mission
+      description: |-
+        Get All in progress missions of driver
+        
+        QUERY CONDITION:
+        
+        Missions.agent_id == user_id from token (query mission belong to driver)
+        
+        Missions.status == 2 (query in progress mission)
+        
+        Order.status == 2 (query in progress orders)
+        
+        NOTED:
+        Mission can have multiple orders but order with status < > 2 will not be sent to front-end
+      operationId: getAgentInProgressMission
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              examples:
+                Success-With-Mission:
+                  summary: Success With Mission
+                  value:
+                    status: ok
+                    missions:
+                      '1080':
+                        - agent_id: 57
+                          mission_id: 1080
+                          mission_status: 2
+                          order_status: 2
+                          order_id: 1080
+                          order_content: Apteekkituotteita
+                          order_volume: 1
+                          order_pickup_after: '2020-12-31 15:15:00'
+                          order_pickup-before: '2020-12-31 17:00:00'
+                          order_weight: 1
+                          order_pin: ''
+                          order_time: '2019-08-01 16:05:17'
+                          order_packets: 1
+                          orders_pin: ''
+                          order_deliver_before: '2020-12-31 17:00:00'
+                          order_deliver_after: '2020-12-31 15:45:00'
+                          customer_street: Sahaajankatu 24
+                          customer_zip: 00880
+                          customer_latitude: '60.20070'
+                          customer_longtitude: '25.04698'
+                          customer_name: PharmaService Oy
+                          customer_city: Helsinki
+                          receiver_street: Mustalahdentie 4
+                          receiver_zip: 00960
+                          receiver_latitude: '60.22139'
+                          receiver_longtitude: '25.13911'
+                          receiver_name: VuoApteekki
+                          receiver_city: Helsinki
+                          sender_street: Sahaajankatu 24
+                          sender_zip: 00880
+                          sender_latitude: '60.20070'
+                          sender_longtitude: '25.04698'
+                          sender_name: PharmaService Oy
+                          sender_city: Helsinki
+                        - agent_id: 57
+                          mission_id: 1080
+                          mission_status: 2
+                          order_status: 2
+                          order_id: 5771
+                          order_content: Apteekkituotteita
+                          order_volume: 1
+                          order_pickup_after: '2020-12-31 15:15:00'
+                          order_pickup-before: '2020-12-31 17:00:00'
+                          order_weight: 1
+                          order_pin: ''
+                          order_time: '2019-08-01 16:05:17'
+                          order_packets: 1
+                          orders_pin: ''
+                          order_deliver_before: '2020-12-31 17:00:00'
+                          order_deliver_after: '2020-12-31 15:45:00'
+                          customer_street: Sahaajankatu 24
+                          customer_zip: 00880
+                          customer_latitude: '60.20070'
+                          customer_longtitude: '25.04698'
+                          customer_name: PharmaService Oy
+                          customer_city: Helsinki
+                          receiver_street: Mustalahdentie 4
+                          receiver_zip: 00960
+                          receiver_latitude: '60.22139'
+                          receiver_longtitude: '25.13911'
+                          receiver_name: VuoApteekki
+                          receiver_city: Helsinki
+                          sender_street: Sahaajankatu 24
+                          sender_zip: 00880
+                          sender_latitude: '60.20070'
+                          sender_longtitude: '25.04698'
+                          sender_name: PharmaService Oy
+                          sender_city: Helsinki
+                    
+                Success-Without-Mission:
+                  summary: Success Without Mission
+                  value:
+                    status: ok
+                    message: no ongoing mission
+      security:
+      - BasicAuth: []              
+                    
+  /mission/reserve:
+    post:
+      tags:
+      - mission
+      summary:  Reserving An Available Mission for Driver
+      description: |-
+        Reserving An Available Mission for Driver
+        
+        QUERY CONDITION:
+        
+        Mission.id = missionId (query requested mission)
+        
+        Missions.status == 0 (misison status must be available to reserve)
+        
+        Driver must have all tags from slot of requested mission ( enterprise, customer, pricelist tags)
+        
+      operationId: reservingAnAvailableMission
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - missionId
+              properties:
+                missionId:
+                  type: integer
+                  example: 1080
+          multipart/form-data:
+            schema:
+              required:
+              - missionId
+              properties:
+                missionId:
+                  type: integer
+                  example: 1080
+        required: true
+        
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              example:
+                  status: ok
+                  message: successfully reserved mission 1080
+                  
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              example:
+                  status: error
+                  error: cannot find mission or mission has been reserved
+      security:
+      - BasicAuth: []            
+                  
+  /mission/reserved/pickup:
+    post:
+      tags:
+      - mission
+      summary:  Pickup A Reserved Mission of Driver
+      description: |-
+        Pickup A Reserved Mission of Driver
+        
+        QUERY CONDITION:
+        
+        Missions.agent_id == user_id from token (query mission reserved by driver)
+        
+        Missions.status == 1 (misison status must be in reserved)
+        
+        Order.status == 1 (query ONLY accepted orders)
+        
+        UPDATING:
+        
+        Mission.status will be updated to 2 (In Progress)
+        
+        All orders.status will be updated to 2 (In Progress)
+        
+      operationId: pickupingAReservedMission
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - missionId
+              properties:
+                missionId:
+                  type: integer
+                  example: 1080
+          multipart/form-data:
+            schema:
+              required:
+              - missionId
+              properties:
+                missionId:
+                  type: integer
+                  example: 1080
+        required: true
+        
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              example:
+                  status: ok
+                  
+                  
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              example:
+                  status: error
+                  error: cannot find your reserved mission or mission has been picked up
+      security:
+      - BasicAuth: []            
+  
+  /mission/reserved/cancel:
+    post:
+      tags:
+      - mission
+      summary:  Cancel A Reserved Mission of Driver
+      description: |-
+        Cancel A Reserved Mission of Driver
+        
+        QUERY CONDITION:
+        
+        Missions.agent_id == user_id from token (query mission reserved by driver)
+        
+        Missions.status == 1 (misison status must be in reserved)
+        
+        UPDATING:
+        
+        Mission.status will be updated to 0 (Available)
+        
+        Mission.agent_id will be set to NULL (UnAssign driver to that mission)
+        
+      operationId: cancelingAReservedMission
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - missionId
+              properties:
+                missionId:
+                  type: integer
+                  example: 1080
+          multipart/form-data:
+            schema:
+              required:
+              - missionId
+              properties:
+                missionId:
+                  type: integer
+                  example: 1080
+        required: true
+        
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              example:
+                  status: ok
+                  
+                  
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              example:
+                  status: error
+                  error: cannot find mission or cancel mission in progress
+                  
+      security:
+      - BasicAuth: []        
+      
+  /mission/reserved/lost:
+    post:
+      tags:
+      - mission
+      summary:  Report cannnot pickup A Reserved Mission of Driver
+      description: |-
+        When Driver cannot pickup a reserved Mission in progress, he/she can report lost via this route
+        
+        QUERY CONDITION:
+        
+        Missions.agent_id == user_id from token (query mission reserved by driver)
+        
+        Missions.status == 1 (misison status must be in reserved)
+        
+        UPDATING:
+        
+        Mission.status will be updated to 6 (Lost)
+        
+      operationId: reportingLostAReservedMission
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - missionId
+              properties:
+                missionId:
+                  type: integer
+                  example: 1080
+          multipart/form-data:
+            schema:
+              required:
+              - missionId
+              properties:
+                missionId:
+                  type: integer
+                  example: 1080
+        required: true
+        
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              example:
+                  status: ok
+                  
+                  
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              example:
+                  status: error
+                  error: cannot find mission or report lost mission that is not reserved
+                  
+      security:
+      - BasicAuth: []   
+      
+      
+  /order/deliver:
+    post:
+      tags:
+      - order
+      summary:  Report deliver successfully an order in the In Progress Mission of Driver
+      description: |-
+        When Driver deliver an Order in the in progress reserved Mission , he/she can report success via this route
+        
+        QUERY CONDITION:
+        
+        Missions.agent_id == user_id from token (query mission reserved by driver)
+        
+        Missions.status == 2 (misison status must be in progress)
+        
+        Orders.status == 2 (requested order must be in progress)
+        
+        UPDATING:
+        
+        Order.status will be updated to 10 (Delivered)
+        
+      operationId: reportingDeliveredAnOrderInMission
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - missionId
+              - orderId
+              properties:
+                missionId:
+                  type: integer
+                  example: 1080
+                orderId:
+                  type: integer
+                  example: 1080
+          multipart/form-data:
+            schema:
+              required:
+              - missionId
+              properties:
+                missionId:
+                  type: integer
+                  example: 1080
+                orderId:
+                  type: integer
+                  example: 1080
+        required: true
+        
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              example:
+                  status: ok
+                  
+                  
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              examples:
+                Error-No-Mission:
+                  summary: Bad-Mission-Request
+                  value:
+                    status: error
+                    error: cannot find in progress mission
+                Error-No-Order:
+                  summary: Bad-Order-Request
+                  value:
+                    status: error
+                    error: cannot find requested order
+                  
+      security:
+      - BasicAuth: []      
+      
+  /order/fail:
+    post:
+      tags:
+      - order
+      summary:  Report deliver unsuccessfully an order in the In Progress Mission of Driver
+      description: |-
+        When Driver cannot deliver an Order in the in progress reserved Mission , he/she can report failure via this route
+        
+        QUERY CONDITION:
+        
+        Missions.agent_id == user_id from token (query mission reserved by driver)
+        
+        Missions.status == 2 (misison status must be in progress)
+        
+        Orders.status == 2 (requested order must be in progress)
+        
+        UPDATING:
+        
+        Order.status will be updated to 4 (Fail)
+        
+      operationId: reportingFailAnOrderInMission
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              required:
+              - missionId
+              - orderId
+              properties:
+                missionId:
+                  type: integer
+                  example: 1080
+                orderId:
+                  type: integer
+                  example: 1080
+          multipart/form-data:
+            schema:
+              required:
+              - missionId
+              properties:
+                missionId:
+                  type: integer
+                  example: 1080
+                orderId:
+                  type: integer
+                  example: 1080
+        required: true
+        
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              example:
+                  status: ok
+                  
+                  
+        400:
+          description: Bad Request
+          content:
+            application/json:
+              examples:
+                Error-No-Mission:
+                  summary: Bad-Mission-Request
+                  value:
+                    status: error
+                    error: cannot find in progress mission
+                Error-No-Order:
+                  summary: Bad-Order-Request
+                  value:
+                    status: error
+                    error: cannot find requested order
+                  
+      security:
+      - BasicAuth: []      
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
